@@ -785,6 +785,268 @@ impl GgmlType for BlockQ8_1 {
     }
 }
 
+// === FP8 block type trait impls ===
+
+impl GgmlType for BlockQ8F4M3_0 {
+    const DTYPE: GgmlDType = GgmlDType::Q8F4M3_0;
+    const BLCK_SIZE: usize = QK8F4M3_0;
+    type VecDotType = f32;
+
+    fn to_float(xs: &[Self], ys: &mut [f32]) {
+        let k = ys.len();
+        debug_assert!(k.is_multiple_of(QK8F4M3_0));
+        let nb = k / QK8F4M3_0;
+        for i in 0..nb {
+            let d = xs[i].d.to_f32();
+            for j in 0..QK8F4M3_0 {
+                ys[i * QK8F4M3_0 + j] = xs[i].qs[j].to_f32() * d;
+            }
+        }
+    }
+
+    fn from_float(xs: &[f32], ys: &mut [Self]) {
+        let k = xs.len();
+        debug_assert!(k.is_multiple_of(Self::BLCK_SIZE));
+        debug_assert_eq!(ys.len(), k / Self::BLCK_SIZE);
+        let fp8_max: f32 = f8e4m3::MAX.to_f32(); // ~448
+        for (i, ys) in ys.iter_mut().enumerate() {
+            let xs = &xs[i * Self::BLCK_SIZE..(i + 1) * Self::BLCK_SIZE];
+            let amax = xs.iter().fold(0f32, |a, &x| a.max(x.abs()));
+            let d_val = amax / fp8_max;
+            let d = if d_val > 0f32 { d_val } else { f16::MIN_POSITIVE.to_f32() };
+            let id = 1.0 / d;
+            ys.d = f16::from_f32(d);
+            for (y, &x) in ys.qs.iter_mut().zip(xs.iter()) {
+                *y = f8e4m3::from_f32(f32::clamp(x * id, -fp8_max, fp8_max));
+            }
+        }
+    }
+
+    #[allow(unreachable_code)]
+    fn vec_dot(n: usize, xs: &[Self], ys: &[Self::VecDotType]) -> f32 {
+        #[cfg(target_feature = "avx2")]
+        return super::avx::vec_dot_q8f4m3_0_f32(n, xs, ys);
+        #[cfg(target_feature = "neon")]
+        return super::neon::vec_dot_q8f4m3_0_f32(n, xs, ys);
+        #[cfg(target_feature = "simd128")]
+        return super::simd128::vec_dot_q8f4m3_0_f32(n, xs, ys);
+        Self::vec_dot_unopt(n, xs, ys)
+    }
+
+    fn vec_dot_unopt(n: usize, xs: &[Self], ys: &[Self::VecDotType]) -> f32 {
+        debug_assert!(n.is_multiple_of(QK8F4M3_0));
+        let nb = n / QK8F4M3_0;
+        let mut sumf = 0f32;
+        for i in 0..nb {
+            let d = xs[i].d.to_f32();
+            let mut sum = 0f32;
+            for j in 0..QK8F4M3_0 {
+                sum += xs[i].qs[j].to_f32() * ys[i * QK8F4M3_0 + j];
+            }
+            sumf += sum * d;
+        }
+        sumf
+    }
+}
+
+impl GgmlType for BlockQ8F4M3_1 {
+    const DTYPE: GgmlDType = GgmlDType::Q8F4M3_1;
+    const BLCK_SIZE: usize = QK8F4M3_1;
+    type VecDotType = f32;
+
+    fn to_float(xs: &[Self], ys: &mut [f32]) {
+        let k = ys.len();
+        debug_assert!(k.is_multiple_of(QK8F4M3_1));
+        let nb = k / QK8F4M3_1;
+        for i in 0..nb {
+            let d = xs[i].d.to_f32();
+            let m = xs[i].m.to_f32();
+            for j in 0..QK8F4M3_1 {
+                ys[i * QK8F4M3_1 + j] = xs[i].qs[j].to_f32() * d + m;
+            }
+        }
+    }
+
+    fn from_float(xs: &[f32], ys: &mut [Self]) {
+        let k = xs.len();
+        debug_assert!(k.is_multiple_of(Self::BLCK_SIZE));
+        debug_assert_eq!(ys.len(), k / Self::BLCK_SIZE);
+        let fp8_max: f32 = f8e4m3::MAX.to_f32(); // ~448
+        for (i, ys) in ys.iter_mut().enumerate() {
+            let xs = &xs[i * Self::BLCK_SIZE..(i + 1) * Self::BLCK_SIZE];
+            let min_val = xs.iter().fold(f32::INFINITY, |a, &x| a.min(x));
+            let max_val = xs.iter().fold(f32::NEG_INFINITY, |a, &x| a.max(x));
+            let range = max_val - min_val;
+            let d_val = if range > 0f32 { range / fp8_max } else { f16::MIN_POSITIVE.to_f32() };
+            let id = 1.0 / d_val;
+            ys.d = f16::from_f32(d_val);
+            ys.m = f16::from_f32(min_val);
+            for (y, &x) in ys.qs.iter_mut().zip(xs.iter()) {
+                *y = f8e4m3::from_f32(f32::clamp((x - min_val) * id, 0.0, fp8_max));
+            }
+        }
+    }
+
+    #[allow(unreachable_code)]
+    fn vec_dot(n: usize, xs: &[Self], ys: &[Self::VecDotType]) -> f32 {
+        #[cfg(target_feature = "avx2")]
+        return super::avx::vec_dot_q8f4m3_1_f32(n, xs, ys);
+        #[cfg(target_feature = "neon")]
+        return super::neon::vec_dot_q8f4m3_1_f32(n, xs, ys);
+        #[cfg(target_feature = "simd128")]
+        return super::simd128::vec_dot_q8f4m3_1_f32(n, xs, ys);
+        Self::vec_dot_unopt(n, xs, ys)
+    }
+
+    fn vec_dot_unopt(n: usize, xs: &[Self], ys: &[Self::VecDotType]) -> f32 {
+        debug_assert!(n.is_multiple_of(QK8F4M3_1));
+        let nb = n / QK8F4M3_1;
+        let mut sumf = 0f32;
+        for i in 0..nb {
+            let d = xs[i].d.to_f32();
+            let m = xs[i].m.to_f32();
+            let mut sum = 0f32;
+            let mut sumy = 0f32;
+            for j in 0..QK8F4M3_1 {
+                sum += xs[i].qs[j].to_f32() * ys[i * QK8F4M3_1 + j];
+                sumy += ys[i * QK8F4M3_1 + j];
+            }
+            sumf += sum * d + m * sumy;
+        }
+        sumf
+    }
+}
+
+impl GgmlType for BlockQ8F5M2_0 {
+    const DTYPE: GgmlDType = GgmlDType::Q8F5M2_0;
+    const BLCK_SIZE: usize = QK8F5M2_0;
+    type VecDotType = f32;
+
+    fn to_float(xs: &[Self], ys: &mut [f32]) {
+        let k = ys.len();
+        debug_assert!(k.is_multiple_of(QK8F5M2_0));
+        let nb = k / QK8F5M2_0;
+        for i in 0..nb {
+            let d = xs[i].d.to_f32();
+            for j in 0..QK8F5M2_0 {
+                ys[i * QK8F5M2_0 + j] = xs[i].qs[j].to_f32() * d;
+            }
+        }
+    }
+
+    fn from_float(xs: &[f32], ys: &mut [Self]) {
+        let k = xs.len();
+        debug_assert!(k.is_multiple_of(Self::BLCK_SIZE));
+        debug_assert_eq!(ys.len(), k / Self::BLCK_SIZE);
+        let fp8_max: f32 = f8e5m2::MAX.to_f32(); // ~57344
+        for (i, ys) in ys.iter_mut().enumerate() {
+            let xs = &xs[i * Self::BLCK_SIZE..(i + 1) * Self::BLCK_SIZE];
+            let amax = xs.iter().fold(0f32, |a, &x| a.max(x.abs()));
+            let d_val = amax / fp8_max;
+            let d = if d_val > 0f32 { d_val } else { f16::MIN_POSITIVE.to_f32() };
+            let id = 1.0 / d;
+            ys.d = f16::from_f32(d);
+            for (y, &x) in ys.qs.iter_mut().zip(xs.iter()) {
+                *y = f8e5m2::from_f32(f32::clamp(x * id, -fp8_max, fp8_max));
+            }
+        }
+    }
+
+    #[allow(unreachable_code)]
+    fn vec_dot(n: usize, xs: &[Self], ys: &[Self::VecDotType]) -> f32 {
+        #[cfg(target_feature = "avx2")]
+        return super::avx::vec_dot_q8f5m2_0_f32(n, xs, ys);
+        #[cfg(target_feature = "neon")]
+        return super::neon::vec_dot_q8f5m2_0_f32(n, xs, ys);
+        #[cfg(target_feature = "simd128")]
+        return super::simd128::vec_dot_q8f5m2_0_f32(n, xs, ys);
+        Self::vec_dot_unopt(n, xs, ys)
+    }
+
+    fn vec_dot_unopt(n: usize, xs: &[Self], ys: &[Self::VecDotType]) -> f32 {
+        debug_assert!(n.is_multiple_of(QK8F5M2_0));
+        let nb = n / QK8F5M2_0;
+        let mut sumf = 0f32;
+        for i in 0..nb {
+            let d = xs[i].d.to_f32();
+            let mut sum = 0f32;
+            for j in 0..QK8F5M2_0 {
+                sum += xs[i].qs[j].to_f32() * ys[i * QK8F5M2_0 + j];
+            }
+            sumf += sum * d;
+        }
+        sumf
+    }
+}
+
+impl GgmlType for BlockQ8F5M2_1 {
+    const DTYPE: GgmlDType = GgmlDType::Q8F5M2_1;
+    const BLCK_SIZE: usize = QK8F5M2_1;
+    type VecDotType = f32;
+
+    fn to_float(xs: &[Self], ys: &mut [f32]) {
+        let k = ys.len();
+        debug_assert!(k.is_multiple_of(QK8F5M2_1));
+        let nb = k / QK8F5M2_1;
+        for i in 0..nb {
+            let d = xs[i].d.to_f32();
+            let m = xs[i].m.to_f32();
+            for j in 0..QK8F5M2_1 {
+                ys[i * QK8F5M2_1 + j] = xs[i].qs[j].to_f32() * d + m;
+            }
+        }
+    }
+
+    fn from_float(xs: &[f32], ys: &mut [Self]) {
+        let k = xs.len();
+        debug_assert!(k.is_multiple_of(Self::BLCK_SIZE));
+        debug_assert_eq!(ys.len(), k / Self::BLCK_SIZE);
+        let fp8_max: f32 = f8e5m2::MAX.to_f32(); // ~57344
+        for (i, ys) in ys.iter_mut().enumerate() {
+            let xs = &xs[i * Self::BLCK_SIZE..(i + 1) * Self::BLCK_SIZE];
+            let min_val = xs.iter().fold(f32::INFINITY, |a, &x| a.min(x));
+            let max_val = xs.iter().fold(f32::NEG_INFINITY, |a, &x| a.max(x));
+            let range = max_val - min_val;
+            let d_val = if range > 0f32 { range / fp8_max } else { f16::MIN_POSITIVE.to_f32() };
+            let id = 1.0 / d_val;
+            ys.d = f16::from_f32(d_val);
+            ys.m = f16::from_f32(min_val);
+            for (y, &x) in ys.qs.iter_mut().zip(xs.iter()) {
+                *y = f8e5m2::from_f32(f32::clamp((x - min_val) * id, 0.0, fp8_max));
+            }
+        }
+    }
+
+    #[allow(unreachable_code)]
+    fn vec_dot(n: usize, xs: &[Self], ys: &[Self::VecDotType]) -> f32 {
+        #[cfg(target_feature = "avx2")]
+        return super::avx::vec_dot_q8f5m2_1_f32(n, xs, ys);
+        #[cfg(target_feature = "neon")]
+        return super::neon::vec_dot_q8f5m2_1_f32(n, xs, ys);
+        #[cfg(target_feature = "simd128")]
+        return super::simd128::vec_dot_q8f5m2_1_f32(n, xs, ys);
+        Self::vec_dot_unopt(n, xs, ys)
+    }
+
+    fn vec_dot_unopt(n: usize, xs: &[Self], ys: &[Self::VecDotType]) -> f32 {
+        debug_assert!(n.is_multiple_of(QK8F5M2_1));
+        let nb = n / QK8F5M2_1;
+        let mut sumf = 0f32;
+        for i in 0..nb {
+            let d = xs[i].d.to_f32();
+            let m = xs[i].m.to_f32();
+            let mut sum = 0f32;
+            let mut sumy = 0f32;
+            for j in 0..QK8F5M2_1 {
+                sum += xs[i].qs[j].to_f32() * ys[i * QK8F5M2_1 + j];
+                sumy += ys[i * QK8F5M2_1 + j];
+            }
+            sumf += sum * d + m * sumy;
+        }
+        sumf
+    }
+}
+
 impl GgmlType for BlockQ2K {
     const DTYPE: GgmlDType = GgmlDType::Q2K;
     const BLCK_SIZE: usize = QK_K;
