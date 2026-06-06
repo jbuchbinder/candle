@@ -7,6 +7,8 @@ use crate::quantized::utils::{make_qkx3_quants, make_qp_quants};
 use crate::Result;
 use byteorder::{ByteOrder, LittleEndian};
 use half::{bf16, f16, slice::HalfFloatSliceExt};
+use float8::F8E4M3 as f8e4m3;
+use float8::F8E5M2 as f8e5m2;
 use rayon::prelude::*;
 
 // Default to QK_K 256 rather than 64.
@@ -19,6 +21,10 @@ pub const QK5_0: usize = 32;
 pub const QK5_1: usize = 32;
 pub const QK8_0: usize = 32;
 pub const QK8_1: usize = 32;
+pub const QK8F4M3_0: usize = 32;
+pub const QK8F4M3_1: usize = 32;
+pub const QK8F5M2_0: usize = 32;
+pub const QK8F5M2_1: usize = 32;
 
 pub trait GgmlType: Sized + Clone + Send + Sync {
     const DTYPE: GgmlDType;
@@ -106,6 +112,40 @@ pub struct BlockQ8_1 {
     pub(crate) qs: [i8; QK8_1],
 }
 const _: () = assert!(std::mem::size_of::<BlockQ8_1>() == 36);
+
+#[derive(Debug, Clone, PartialEq)]
+#[repr(C)]
+pub struct BlockQ8F4M3_0 {
+    pub(crate) d: f16,
+    pub(crate) qs: [f8e4m3; QK8F4M3_0],
+}
+const _: () = assert!(std::mem::size_of::<BlockQ8F4M3_0>() == 34);
+
+#[derive(Debug, Clone, PartialEq)]
+#[repr(C)]
+pub struct BlockQ8F4M3_1 {
+    pub(crate) d: f16,
+    pub(crate) m: f16,
+    pub(crate) qs: [f8e4m3; QK8F4M3_1],
+}
+const _: () = assert!(std::mem::size_of::<BlockQ8F4M3_1>() == 36);
+
+#[derive(Debug, Clone, PartialEq)]
+#[repr(C)]
+pub struct BlockQ8F5M2_0 {
+    pub(crate) d: f16,
+    pub(crate) qs: [f8e5m2; QK8F5M2_0],
+}
+const _: () = assert!(std::mem::size_of::<BlockQ8F5M2_0>() == 34);
+
+#[derive(Debug, Clone, PartialEq)]
+#[repr(C)]
+pub struct BlockQ8F5M2_1 {
+    pub(crate) d: f16,
+    pub(crate) m: f16,
+    pub(crate) qs: [f8e5m2; QK8F5M2_1],
+}
+const _: () = assert!(std::mem::size_of::<BlockQ8F5M2_1>() == 36);
 
 #[derive(Debug, Clone, PartialEq)]
 #[repr(C)]
