@@ -44,6 +44,12 @@ WHERE_OP(__nv_fp8_e4m3, int32_t, where_i32_fp8_e4m3)
 WHERE_OP(__nv_fp8_e4m3, int64_t, where_i64_fp8_e4m3)
 WHERE_OP(__nv_fp8_e4m3, uint32_t, where_u32_fp8_e4m3)
 WHERE_OP(__nv_fp8_e4m3, uint8_t, where_u8_fp8_e4m3)
+
+WHERE_OP(__nv_fp8_e5m2, int16_t, where_i16_fp8_e5m2)
+WHERE_OP(__nv_fp8_e5m2, int32_t, where_i32_fp8_e5m2)
+WHERE_OP(__nv_fp8_e5m2, int64_t, where_i64_fp8_e5m2)
+WHERE_OP(__nv_fp8_e5m2, uint32_t, where_u32_fp8_e5m2)
+WHERE_OP(__nv_fp8_e5m2, uint8_t, where_u8_fp8_e5m2)
 #endif
 
 #if __CUDA_ARCH__ >= 530

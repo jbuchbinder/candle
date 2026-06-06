@@ -71,6 +71,51 @@ __device__ void cast_fp8_into_(
     }
 }
 
+template <typename T>
+__device__ void cast_fp8_e5m2_(
+    const size_t numel,
+    const size_t num_dims,
+    const size_t *info,
+    const __nv_fp8_e5m2 *inp,
+    T *out
+) {
+    const size_t *dims = info;
+    const size_t *strides = info + num_dims;
+    if (info == nullptr || is_contiguous(num_dims, dims, strides)) {
+        for (unsigned int i = blockIdx.x * blockDim.x + threadIdx.x; i < numel; i += blockDim.x * gridDim.x) {
+            out[i] = F8E5M2_TO_FLOAT(inp[i]);
+        }
+    }
+    else {
+        for (unsigned int i = blockIdx.x * blockDim.x + threadIdx.x; i < numel; i += blockDim.x * gridDim.x) {
+            unsigned strided_i = get_strided_index(i, num_dims, dims, strides);
+            out[i] = F8E5M2_TO_FLOAT(inp[strided_i]);
+        }
+    }
+}
+template <typename S>
+__device__ void cast_fp8_e5m2_into_(
+    const size_t numel,
+    const size_t num_dims,
+    const size_t *info,
+    const S *inp,
+    __nv_fp8_e5m2 *out
+) {
+    const size_t *dims = info;
+    const size_t *strides = info + num_dims;
+    if (info == nullptr || is_contiguous(num_dims, dims, strides)) {
+        for (unsigned int i = blockIdx.x * blockDim.x + threadIdx.x; i < numel; i += blockDim.x * gridDim.x) {
+            out[i] = __nv_fp8_e5m2((float)inp[i]);
+        }
+    }
+    else {
+        for (unsigned int i = blockIdx.x * blockDim.x + threadIdx.x; i < numel; i += blockDim.x * gridDim.x) {
+            unsigned strided_i = get_strided_index(i, num_dims, dims, strides);
+            out[i] = __nv_fp8_e5m2((float)inp[strided_i]);
+        }
+    }
+}
+
 template <typename S, typename T, typename I>
 __device__ void cast_through(
     const size_t numel,
@@ -130,6 +175,28 @@ extern "C" __global__ void FN_NAME( \
     cast_fp8_into_<SRC_TYPENAME>(numel, num_dims, info, inp, out); \
 } \
 
+#define CAST_OP_FP8_E5M2(SRC_TYPENAME, DST_TYPENAME, FN_NAME) \
+extern "C" __global__ void FN_NAME( \
+    const size_t numel, \
+    const size_t num_dims, \
+    const size_t *info, \
+    const SRC_TYPENAME *inp, \
+    DST_TYPENAME *out \
+) { \
+    cast_fp8_e5m2_<DST_TYPENAME>(numel, num_dims, info, inp, out); \
+} \
+
+#define CAST_OP_FP8_E5M2_INTO(SRC_TYPENAME, DST_TYPENAME, FN_NAME) \
+extern "C" __global__ void FN_NAME( \
+    const size_t numel, \
+    const size_t num_dims, \
+    const size_t *info, \
+    const SRC_TYPENAME *inp, \
+    DST_TYPENAME *out \
+) { \
+    cast_fp8_e5m2_into_<SRC_TYPENAME>(numel, num_dims, info, inp, out); \
+} \
+
 #define CAST_THROUGH_OP(SRC_TYPENAME, DST_TYPENAME, INT_TYPENAME, FN_NAME) \
 extern "C" __global__ void FN_NAME( \
     const size_t numel, \
@@ -168,6 +235,20 @@ CAST_OP_FP8_INTO(int32_t,   __nv_fp8_e4m3, cast_i32_f8_e4m3)
 CAST_OP_FP8(__nv_fp8_e4m3, int32_t, cast_f8_e4m3_i32)
 CAST_OP_FP8(__nv_fp8_e4m3, __nv_bfloat16, cast_f8_e4m3_bf16)
 CAST_OP_FP8_INTO(__nv_bfloat16, __nv_fp8_e4m3, cast_bf16_f8_e4m3)
+
+CAST_OP(__nv_fp8_e5m2, __nv_fp8_e5m2, cast_f8_e5m2_f8_e5m2)
+CAST_OP_FP8_E5M2(__nv_fp8_e5m2, float,    cast_f8_e5m2_f32)
+CAST_OP_FP8_E5M2_INTO(float,    __nv_fp8_e5m2, cast_f32_f8_e5m2)
+CAST_OP_FP8_E5M2(__nv_fp8_e5m2, uint8_t, cast_f8_e5m2_u8)
+CAST_OP_FP8_E5M2(__nv_fp8_e5m2, __half, cast_f8_e5m2_f16)
+CAST_OP_FP8_E5M2(__nv_fp8_e5m2, double,  cast_f8_e5m2_f64)
+CAST_OP_FP8_E5M2_INTO(__half,   __nv_fp8_e5m2, cast_f16_f8_e5m2)
+CAST_OP_FP8_E5M2_INTO(double,   __nv_fp8_e5m2, cast_f64_f8_e5m2)
+CAST_OP_FP8_E5M2_INTO(uint8_t,   __nv_fp8_e5m2, cast_u8_f8_e5m2)
+CAST_OP_FP8_E5M2_INTO(int32_t,   __nv_fp8_e5m2, cast_i32_f8_e5m2)
+CAST_OP_FP8_E5M2(__nv_fp8_e5m2, int32_t, cast_f8_e5m2_i32)
+CAST_OP_FP8_E5M2(__nv_fp8_e5m2, __nv_bfloat16, cast_f8_e5m2_bf16)
+CAST_OP_FP8_E5M2_INTO(__nv_bfloat16, __nv_fp8_e5m2, cast_bf16_f8_e5m2)
 #else
 #include <cuda.h>
 #if CUDA_VERSION >= 11000

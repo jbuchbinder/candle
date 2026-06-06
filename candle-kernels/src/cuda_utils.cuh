@@ -201,6 +201,8 @@ __device__ __forceinline__ __nv_bfloat16 copysigng(__nv_bfloat16 a, __nv_bfloat1
 
 #define F8E4M3_TO_FLOAT(x) __half2float(__nv_cvt_fp8_to_halfraw(x.__x, __NV_E4M3))
 
+#define F8E5M2_TO_FLOAT(x) __half2float(__nv_cvt_fp8_to_halfraw(x.__x, __NV_E5M2))
+
 __device__ __forceinline__ __nv_fp8_e4m3 powg(__nv_fp8_e4m3 a, __nv_fp8_e4m3 b) { return __nv_fp8_e4m3(powf(F8E4M3_TO_FLOAT(a), F8E4M3_TO_FLOAT(b))); }
 __device__ __forceinline__ bool isnang(__nv_fp8_e4m3 a) { return isnan(F8E4M3_TO_FLOAT(a)); }
 __device__ __forceinline__ __nv_fp8_e4m3 sqrtg(__nv_fp8_e4m3 a) { return __nv_fp8_e4m3(sqrtf(F8E4M3_TO_FLOAT(a))); }
@@ -220,5 +222,23 @@ __device__ __forceinline__ __nv_fp8_e4m3 expg(__nv_fp8_e4m3 a) { return __nv_fp8
 __device__ __forceinline__ __nv_fp8_e4m3 absg(__nv_fp8_e4m3 a) { return __nv_fp8_e4m3(fabsf(F8E4M3_TO_FLOAT(a))); }
 __device__ __forceinline__ __nv_fp8_e4m3 copysigng(__nv_fp8_e4m3 a, __nv_fp8_e4m3 b) { return __nv_fp8_e4m3(copysignf(F8E4M3_TO_FLOAT(a), F8E4M3_TO_FLOAT(b))); }
 
+__device__ __forceinline__ __nv_fp8_e5m2 powg(__nv_fp8_e5m2 a, __nv_fp8_e5m2 b) { return __nv_fp8_e5m2(powf(F8E5M2_TO_FLOAT(a), F8E5M2_TO_FLOAT(b))); }
+__device__ __forceinline__ bool isnang(__nv_fp8_e5m2 a) { return isnan(F8E5M2_TO_FLOAT(a)); }
+__device__ __forceinline__ __nv_fp8_e5m2 sqrtg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(sqrtf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 cosg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(cosf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 sing(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(sinf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 recipg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(1. / F8E5M2_TO_FLOAT(a)); }
+__device__ __forceinline__ __nv_fp8_e5m2 maxg(__nv_fp8_e5m2 a, __nv_fp8_e5m2 b) { return __nv_fp8_e5m2(fmaxf(F8E5M2_TO_FLOAT(a), F8E5M2_TO_FLOAT(b))); }
+__device__ __forceinline__ __nv_fp8_e5m2 tanhg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(tanhf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 erfg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(erff(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 ceilg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(ceilf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 floorg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(floorf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 roundg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(roundf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 normcdfg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(normcdff(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 ming(__nv_fp8_e5m2 a, __nv_fp8_e5m2 b) { return __nv_fp8_e5m2(fminf(F8E5M2_TO_FLOAT(a), F8E5M2_TO_FLOAT(b))); }
+__device__ __forceinline__ __nv_fp8_e5m2 logg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(logf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 expg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(expf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 absg(__nv_fp8_e5m2 a) { return __nv_fp8_e5m2(fabsf(F8E5M2_TO_FLOAT(a))); }
+__device__ __forceinline__ __nv_fp8_e5m2 copysigng(__nv_fp8_e5m2 a, __nv_fp8_e5m2 b) { return __nv_fp8_e5m2(copysignf(F8E5M2_TO_FLOAT(a), F8E5M2_TO_FLOAT(b))); }
 
 #endif
