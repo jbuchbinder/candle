@@ -32,6 +32,7 @@ impl From<DType> for st::Dtype {
             DType::F32 => st::Dtype::F32,
             DType::F64 => st::Dtype::F64,
             DType::F8E4M3 => st::Dtype::F8_E4M3,
+            DType::F8E5M2 => st::Dtype::F8_E5M2,
             DType::F6E2M3 => st::Dtype::F6_E2M3,
             DType::F6E3M2 => st::Dtype::F6_E3M2,
             DType::F4 => st::Dtype::F4,
@@ -54,6 +55,7 @@ impl TryFrom<st::Dtype> for DType {
             st::Dtype::F32 => Ok(DType::F32),
             st::Dtype::F64 => Ok(DType::F64),
             st::Dtype::F8_E4M3 => Ok(DType::F8E4M3),
+            st::Dtype::F8_E5M2 => Ok(DType::F8E5M2),
             st::Dtype::F6_E2M3 => Ok(DType::F6E2M3),
             st::Dtype::F6_E3M2 => Ok(DType::F6E3M2),
             st::Dtype::F4 => Ok(DType::F4),
@@ -223,6 +225,7 @@ impl Tensor {
             DType::F32 => convert_slice::<f32>(data, shape, device),
             DType::F64 => convert_slice::<f64>(data, shape, device),
             DType::F8E4M3 => convert_slice::<float8::F8E4M3>(data, shape, device),
+            DType::F8E5M2 => convert_slice::<float8::F8E5M2>(data, shape, device),
             DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
                 // For dummy types, create storage with raw bytes
                 let storage = match device {
@@ -299,6 +302,7 @@ fn convert(view: &st::TensorView<'_>, device: &Device) -> Result<Tensor> {
         st::Dtype::F32 => convert_::<f32>(view, device),
         st::Dtype::F64 => convert_::<f64>(view, device),
         st::Dtype::F8_E4M3 => convert_::<float8::F8E4M3>(view, device),
+        st::Dtype::F8_E5M2 => convert_::<float8::F8E5M2>(view, device),
         st::Dtype::F6_E2M3 | st::Dtype::F6_E3M2 | st::Dtype::F4 | st::Dtype::F8_E8M0 => {
             // For dummy types, we need to handle loading by creating a dummy tensor
             // Since these types don't have actual data representation, we'll create
@@ -391,6 +395,7 @@ fn convert_back(tensor: &Tensor) -> Result<Vec<u8>> {
         DType::F32 => Ok(convert_back_::<f32>(tensor.to_vec1()?)),
         DType::F64 => Ok(convert_back_::<f64>(tensor.to_vec1()?)),
         DType::F8E4M3 => Ok(convert_back_::<float8::F8E4M3>(tensor.to_vec1()?)),
+        DType::F8E5M2 => Ok(convert_back_::<float8::F8E5M2>(tensor.to_vec1()?)),
         DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
             Err(Error::Msg("Internal error: dtype mismatch in storage".to_string()).bt())
         }
