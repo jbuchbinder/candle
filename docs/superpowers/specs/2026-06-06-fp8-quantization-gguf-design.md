@@ -70,8 +70,14 @@ struct BlockQ8F5M2_1 { d: f16, m: f16, qs: [F8E5M2; 32] }
 
 #### Quantization (from_float)
 
+`max_fp8_value` is format-dependent: ~448 for F8E4M3, ~57344 for F8E5M2.
+
 - Symmetric: `d = max(|values|) / max_fp8_value`, `qs[i] = round(clamp(values[i] / d))`
 - Asymmetric: `m = min(values)`, `d = (max - min) / max_fp8_value`, `qs[i] = round(clamp((values[i] - m) / d))`
+
+#### VecDot
+
+All four types use `VecDotType = f32`, meaning the activation-side vector in `vec_dot(n, qs, activations)` is F32. The quantized weights are dequantized on-the-fly during the dot product, matching the scalar pattern used by `Q8_0`.
 
 ### Phase 2: GGUF FP8 Block Types (CPU Implementation)
 
