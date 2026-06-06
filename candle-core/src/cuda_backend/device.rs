@@ -3,7 +3,7 @@ use crate::{CpuStorage, CpuStorageRef, DType, Layout, Result, Shape};
 pub use candle_kernels as kernels;
 pub use cudarc;
 use cudarc::driver::CudaFunction;
-use float8::F8E4M3;
+use float8::{F8E4M3, F8E5M2};
 use half::{bf16, f16};
 use std::any::{Any, TypeId};
 use std::cell::{Cell, RefCell};
@@ -472,6 +472,10 @@ impl BackendDevice for CudaDevice {
                 let data = self.alloc_zeros::<F8E4M3>(elem_count)?;
                 CudaStorageSlice::F8E4M3(data)
             }
+            DType::F8E5M2 => {
+                let data = self.alloc_zeros::<F8E5M2>(elem_count)?;
+                CudaStorageSlice::F8E5M2(data)
+            }
             DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
                 return Err(
                     CudaError::InternalError("Dummy types not supported in CUDA backend").into(),
@@ -511,7 +515,7 @@ impl BackendDevice for CudaDevice {
                 curand.0.fill_with_uniform(&mut data).w()?;
                 CudaStorageSlice::F64(data)
             }
-            DType::F8E4M3 | DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
+            DType::F8E4M3 | DType::F8E5M2 | DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
                 Err(CudaError::UnsupportedDtype {
                     dtype,
                     op: "rand_uniform",
@@ -569,7 +573,7 @@ impl BackendDevice for CudaDevice {
                 curand.0.fill_with_normal(&mut data, mean, std).w()?;
                 CudaStorageSlice::F64(data)
             }
-            DType::F8E4M3 | DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
+            DType::F8E4M3 | DType::F8E5M2 | DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
                 Err(CudaError::UnsupportedDtype {
                     dtype,
                     op: "rand_normal",
@@ -626,6 +630,10 @@ impl BackendDevice for CudaDevice {
                 let data = self.alloc::<F8E4M3>(elem_count)?;
                 CudaStorageSlice::F8E4M3(data)
             }
+            DType::F8E5M2 => {
+                let data = self.alloc::<F8E5M2>(elem_count)?;
+                CudaStorageSlice::F8E5M2(data)
+            }
             DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
                 return Err(
                     CudaError::InternalError("Dummy types not supported in CUDA backend").into(),
@@ -679,6 +687,10 @@ impl BackendDevice for CudaDevice {
             CpuStorageRef::F8E4M3(storage) => {
                 let data = self.clone_htod(storage)?;
                 CudaStorageSlice::F8E4M3(data)
+            }
+            CpuStorageRef::F8E5M2(storage) => {
+                let data = self.clone_htod(storage)?;
+                CudaStorageSlice::F8E5M2(data)
             }
             CpuStorageRef::F4(_)
             | CpuStorageRef::F6E2M3(_)
@@ -739,6 +751,10 @@ impl BackendDevice for CudaDevice {
                 let data = self.clone_htod(storage)?;
                 CudaStorageSlice::F8E4M3(data)
             }
+            CpuStorage::F8E5M2(storage) => {
+                let data = self.clone_htod(storage)?;
+                CudaStorageSlice::F8E5M2(data)
+            }
             CpuStorage::F4(_)
             | CpuStorage::F6E2M3(_)
             | CpuStorage::F6E3M2(_)
@@ -797,6 +813,10 @@ impl BackendDevice for CudaDevice {
             CpuStorage::F8E4M3(storage) => {
                 let data = self.clone_htod(&storage)?;
                 CudaStorageSlice::F8E4M3(data)
+            }
+            CpuStorage::F8E5M2(storage) => {
+                let data = self.clone_htod(&storage)?;
+                CudaStorageSlice::F8E5M2(data)
             }
             CpuStorage::F4(_)
             | CpuStorage::F6E2M3(_)
