@@ -320,7 +320,7 @@ pub enum GgmlDType {
 }
 
 impl GgmlDType {
-    pub(crate) fn from_u32(u: u32) -> Result<Self> {
+    pub fn from_u32(u: u32) -> Result<Self> {
         let dtype = match u {
             0 => Self::F32,
             1 => Self::F16,
@@ -347,7 +347,7 @@ impl GgmlDType {
         Ok(dtype)
     }
 
-    pub(crate) fn to_u32(self) -> u32 {
+    pub fn to_u32(self) -> u32 {
         match self {
             Self::F32 => 0,
             Self::F16 => 1,
