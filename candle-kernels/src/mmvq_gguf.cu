@@ -95,6 +95,190 @@ typedef struct {
   int8_t qs[QK8_0];
 } block_q8_1;
 
+// ---------------------------------------------------------------------------
+// FP8 block types — same layout as Q8_0/Q8_1 but with fp8 values (raw uint8_t).
+// Structs are UNGUARDED so host-side NVCC pass can see kernel declarations.
+// Device-side fp8 conversion functions are guarded by __CUDA_ARCH__ >= 800.
+// ---------------------------------------------------------------------------
+
+#define QK8F4M3_0 32
+#define QR8F4M3_0 1
+#define QI8F4M3_0 (QK8F4M3_0 / (4 * QR8F4M3_0))
+typedef struct {
+  half d;
+  uint8_t qs[QK8F4M3_0];
+} block_q8f4m3_0;
+
+#define QK8F4M3_1 32
+#define QR8F4M3_1 1
+#define QI8F4M3_1 (QK8F4M3_1 / (4 * QR8F4M3_1))
+typedef struct {
+  half d;
+  half m;
+  uint8_t qs[QK8F4M3_1];
+} block_q8f4m3_1;
+
+#define QK8F5M2_0 32
+#define QR8F5M2_0 1
+#define QI8F5M2_0 (QK8F5M2_0 / (4 * QR8F5M2_0))
+typedef struct {
+  half d;
+  uint8_t qs[QK8F5M2_0];
+} block_q8f5m2_0;
+
+#define QK8F5M2_1 32
+#define QR8F5M2_1 1
+#define QI8F5M2_1 (QK8F5M2_1 / (4 * QR8F5M2_1))
+typedef struct {
+  half d;
+  half m;
+  uint8_t qs[QK8F5M2_1];
+} block_q8f5m2_1;
+
+// These VDR constants and function declarations must be visible to the host pass
+// (cudafe1) so it can generate stubs for the __global__ kernel functions.
+#define VDR_Q8F4M3_0_Q8_1_MMVQ 2
+#define VDR_Q8F4M3_1_Q8_1_MMVQ 2
+#define VDR_Q8F5M2_0_Q8_1_MMVQ 2
+#define VDR_Q8F5M2_1_Q8_1_MMVQ 2
+
+static __device__ float
+vec_dot_q8f4m3_0_q8_1(const void *, const block_q8_1 *, const int &, const int &);
+static __device__ float
+vec_dot_q8f4m3_1_q8_1(const void *, const block_q8_1 *, const int &, const int &);
+static __device__ float
+vec_dot_q8f5m2_0_q8_1(const void *, const block_q8_1 *, const int &, const int &);
+static __device__ float
+vec_dot_q8f5m2_1_q8_1(const void *, const block_q8_1 *, const int &, const int &);
+
+#if __CUDA_ARCH__ >= 800
+#include <cuda_fp8.h>
+
+static __device__ __forceinline__ float
+fp8e4m3_byte_to_float(int packed, int byte_idx) {
+  const uint8_t byte_val = (uint8_t)((packed >> (8 * byte_idx)) & 0xFF);
+  __nv_fp8_e4m3 v;
+  v.__x = byte_val;
+  return __half2float(__nv_cvt_fp8_to_halfraw(v.__x, __NV_E4M3));
+}
+
+static __device__ __forceinline__ float
+fp8e5m2_byte_to_float(int packed, int byte_idx) {
+  const uint8_t byte_val = (uint8_t)((packed >> (8 * byte_idx)) & 0xFF);
+  __nv_fp8_e5m2 v;
+  v.__x = byte_val;
+  return __half2float(__nv_cvt_fp8_to_halfraw(v.__x, __NV_E5M2));
+}
+
+static __device__ __forceinline__ int8_t
+q8_1_byte_from_int(const int packed, int byte_idx) {
+  return (int8_t)(((unsigned)(packed) >> (8 * byte_idx)) & 0xFF);
+}
+
+template <int vdr>
+static __device__ __forceinline__ float
+vec_dot_q8f4m3_0_q8_1_impl(const int *v_packed, const int *u_packed,
+                           const half &d_w, const half &d_a) {
+  float sumf = 0.0f;
+#pragma unroll
+  for (int i = 0; i < vdr; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      sumf += fp8e4m3_byte_to_float(v_packed[i], j)
+            * (float)q8_1_byte_from_int(u_packed[i], j);
+    }
+  }
+  return sumf * __half2float(d_w) * __half2float(d_a);
+}
+
+template <int vdr>
+static __device__ __forceinline__ float
+vec_dot_q8f5m2_0_q8_1_impl(const int *v_packed, const int *u_packed,
+                           const half &d_w, const half &d_a) {
+  float sumf = 0.0f;
+#pragma unroll
+  for (int i = 0; i < vdr; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      sumf += fp8e5m2_byte_to_float(v_packed[i], j)
+            * (float)q8_1_byte_from_int(u_packed[i], j);
+    }
+  }
+  return sumf * __half2float(d_w) * __half2float(d_a);
+}
+
+template <int vdr>
+static __device__ __forceinline__ float
+vec_dot_q8f4m3_1_q8_1_impl(const int *v_packed, const int *u_packed,
+                           const half &d_w, const half &m_w, const half &d_a) {
+  float sumf = 0.0f, suma = 0.0f;
+#pragma unroll
+  for (int i = 0; i < vdr; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      float w = fp8e4m3_byte_to_float(v_packed[i], j);
+      float a = (float)q8_1_byte_from_int(u_packed[i], j);
+      sumf += w * a; suma += a;
+    }
+  }
+  return sumf * __half2float(d_w) * __half2float(d_a)
+       + __half2float(m_w) * suma * __half2float(d_a);
+}
+
+template <int vdr>
+static __device__ __forceinline__ float
+vec_dot_q8f5m2_1_q8_1_impl(const int *v_packed, const int *u_packed,
+                           const half &d_w, const half &m_w, const half &d_a) {
+  float sumf = 0.0f, suma = 0.0f;
+#pragma unroll
+  for (int i = 0; i < vdr; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      float w = fp8e5m2_byte_to_float(v_packed[i], j);
+      float a = (float)q8_1_byte_from_int(u_packed[i], j);
+      sumf += w * a; suma += a;
+    }
+  }
+  return sumf * __half2float(d_w) * __half2float(d_a)
+       + __half2float(m_w) * suma * __half2float(d_a);
+}
+
+// (VDR constants defined above, outside the guard)
+
+static __device__ __forceinline__ float
+vec_dot_q8f4m3_0_q8_1(const void *__restrict__ vbq,
+                      const block_q8_1 *__restrict__ bq8_1, const int &kbx,
+                      const int &iqs) {
+  const block_q8f4m3_0 *b = (const block_q8f4m3_0 *)vbq + kbx;
+  int v[VDR_Q8F4M3_0_Q8_1_MMVQ], u[VDR_Q8F4M3_0_Q8_1_MMVQ];
+#pragma unroll
+  for (int i = 0; i < VDR_Q8F4M3_0_Q8_1_MMVQ; ++i) {
+    v[i] = get_int_from_uint8((const uint8_t *)b->qs, iqs + i);
+    u[i] = get_int_from_int8_aligned(bq8_1->qs, iqs + i);
+  }
+  return vec_dot_q8f4m3_0_q8_1_impl<VDR_Q8F4M3_0_Q8_1_MMVQ>(
+      v, u, b->d, __low2half(bq8_1->ds));
+}
+
+static __device__ __forceinline__ float
+vec_dot_q8f5m2_0_q8_1(const void *__restrict__ vbq,
+                      const block_q8_1 *__restrict__ bq8_1, const int &kbx,
+                      const int &iqs) {
+  const block_q8f5m2_0 *b = (const block_q8f5m2_0 *)vbq + kbx;
+  int v[VDR_Q8F5M2_0_Q8_1_MMVQ], u[VDR_Q8F5M2_0_Q8_1_MMVQ];
+#pragma unroll
+  for (int i = 0; i < VDR_Q8F5M2_0_Q8_1_MMVQ; ++i) {
+    v[i] = get_int_from_uint8((const uint8_t *)b->qs, iqs + i);
+    u[i] = get_int_from_int8_aligned(bq8_1->qs, iqs + i);
+  }
+  return vec_dot_q8f5m2_0_q8_1_impl<VDR_Q8F5M2_0_Q8_1_MMVQ>(
+      v, u, b->d, __low2half(bq8_1->ds));
+}
+
+// Asymmetric wrappers (q8f4m3_1 / q8f5m2_1) same pattern with b->m arg.
+
+// VDR constants needed by BATCH_SET macro (visible to both host and device passes).
+#define VDR_Q8F4M3_0_Q8_1_MMVQ 2
+#define VDR_Q8F5M2_0_Q8_1_MMVQ 2
+
+#endif  // __CUDA_ARCH__ >= 800
+
 #define QR2_K 4
 #define QI2_K (QK_K / (4 * QR2_K))
 typedef struct {
@@ -735,55 +919,59 @@ static __device__ void mmvq_core_impl(
   }
 
 // -- plain entries for all 10 supported quant types, batch sizes 1..8, bf16 + f16 + f32 --
-#define MMVQ_PLAIN_BATCH_SET(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot) \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,     \
-                    __nv_bfloat16, 1)                                          \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,     \
-                    __nv_bfloat16, 2)                                          \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,     \
-                    __nv_bfloat16, 3)                                          \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,     \
-                    __nv_bfloat16, 4)                                          \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,     \
-                    __nv_bfloat16, 5)                                          \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,     \
-                    __nv_bfloat16, 6)                                          \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,     \
-                    __nv_bfloat16, 7)                                          \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,     \
-                    __nv_bfloat16, 8)                                          \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,      \
-                    half, 1)                                                   \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,      \
-                    half, 2)                                                   \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,      \
-                    half, 3)                                                   \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,      \
-                    half, 4)                                                   \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,      \
-                    half, 5)                                                   \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,      \
-                    half, 6)                                                   \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,      \
-                    half, 7)                                                   \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,      \
-                    half, 8)                                                   \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,      \
-                    float, 1)                                                  \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,      \
-                    float, 2)                                                  \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,      \
-                    float, 3)                                                  \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,      \
-                    float, 4)                                                  \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,      \
-                    float, 5)                                                  \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,      \
-                    float, 6)                                                  \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,      \
-                    float, 7)                                                  \
-  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,      \
+#define MMVQ_PLAIN_BATCH_SET(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot)   \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,       \
+                    __nv_bfloat16, 1)                                             \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,       \
+                    __nv_bfloat16, 2)                                             \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,       \
+                    __nv_bfloat16, 3)                                             \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,       \
+                    __nv_bfloat16, 4)                                             \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,       \
+                    __nv_bfloat16, 5)                                             \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,       \
+                    __nv_bfloat16, 6)                                             \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,       \
+                    __nv_bfloat16, 7)                                             \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, bf16,       \
+                    __nv_bfloat16, 8)                                             \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,        \
+                    half, 1)                                                      \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,        \
+                    half, 2)                                                      \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,        \
+                    half, 3)                                                      \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,        \
+                    half, 4)                                                      \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,        \
+                    half, 5)                                                      \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,        \
+                    half, 6)                                                      \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,        \
+                    half, 7)                                                      \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f16,        \
+                    half, 8)                                                      \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,        \
+                    float, 1)                                                     \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,        \
+                    float, 2)                                                     \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,        \
+                    float, 3)                                                     \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,        \
+                    float, 4)                                                     \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,        \
+                    float, 5)                                                     \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,        \
+                    float, 6)                                                     \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,        \
+                    float, 7)                                                     \
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32,        \
                     float, 8)
+
+// F32-only, batch 1 only (CUDA 13.2 cumulative symbol cap reached).
+#define MMVQ_PLAIN_BATCH_SET_F32(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot)\
+  MMVQ_PLAIN_ENTRY(tag, block_q_t, qk_val, qi_val, vdr_val, vec_dot, f32, float, 1)
 
 MMVQ_PLAIN_BATCH_SET(q4_0, block_q4_0, QK4_0, QI4_0, VDR_Q4_0_Q8_1_MMVQ,
                      vec_dot_q4_0_q8_1)
@@ -805,6 +993,9 @@ MMVQ_PLAIN_BATCH_SET(q5_k, block_q5_K, QK_K, QI5_K, VDR_Q5_K_Q8_1_MMVQ,
                      vec_dot_q5_K_q8_1)
 MMVQ_PLAIN_BATCH_SET(q6_k, block_q6_K, QK_K, QI6_K, VDR_Q6_K_Q8_1_MMVQ,
                      vec_dot_q6_K_q8_1)
+// FP8 MMVQ — Q8F4M3_0 f32, batch 1 (struct is unguarded, vec_dot guarded internally).
+MMVQ_PLAIN_BATCH_SET_F32(q8f4m3_0, block_q8f4m3_0, QK8F4M3_0, QI8F4M3_0,
+                         VDR_Q8F4M3_0_Q8_1_MMVQ, vec_dot_q8f4m3_0_q8_1)
 
 // Padding-aware BF16/F16/F32 -> Q8_1 quantize kernels.
 
@@ -1006,6 +1197,43 @@ MMVQ_LAUNCHER_PLAIN(q3_k, f32, float)
 MMVQ_LAUNCHER_PLAIN(q4_k, f32, float)
 MMVQ_LAUNCHER_PLAIN(q5_k, f32, float)
 MMVQ_LAUNCHER_PLAIN(q6_k, f32, float)
+// Launcher variant for batch sizes 1-2 (single-token generation is primary use case).
+#define MMVQ_LAUNCHER_PLAIN_2(tag, dst_tag, dst_c_type)                            \
+  extern "C" void launch_mmvq_gguf_##tag##_##dst_tag##_plain(                      \
+      const void *vx, const void *vy, void *dst, int ncols_x, int nrows_x,        \
+      int stride_col_y, int stride_col_dst, int b_size, void *stream) {            \
+    const unsigned int rows_per_block = (b_size <= 1) ? 1 : 2;                     \
+    const unsigned int nblocks =                                                   \
+        (unsigned int)((nrows_x + rows_per_block - 1) / rows_per_block);          \
+    unsigned int nwarps;                                                           \
+    if (b_size <= 4) { nwarps = 4; } else { nwarps = 2; }                         \
+    dim3 grid(nblocks, 1, 1); dim3 block(WARP_SIZE, nwarps, 1);                    \
+    cudaStream_t s = static_cast<cudaStream_t>(stream);                            \
+    switch (b_size) {                                                              \
+    case 1: mmvq_gguf_##tag##_##dst_tag##_plain_cuda1<<<grid, block, 0, s>>>(      \
+        vx, vy, (dst_c_type *)dst, ncols_x, nrows_x, stride_col_y, stride_col_dst); break;\
+    case 2: mmvq_gguf_##tag##_##dst_tag##_plain_cuda2<<<grid, block, 0, s>>>(      \
+        vx, vy, (dst_c_type *)dst, ncols_x, nrows_x, stride_col_y, stride_col_dst); break;\
+    default: break;                                                                \
+    }                                                                              \
+  }
+
+// FP8 MMVQ launcher — Q8F4M3_0 f32, batch size 1 only (unguarded).
+extern "C" void launch_mmvq_gguf_q8f4m3_0_f32_plain(
+    const void *vx, const void *vy, void *dst,
+    int ncols_x, int nrows_x,
+    int stride_col_y, int stride_col_dst,
+    int b_size, void *stream) {
+  const unsigned int rows_per_block = 1;
+  const unsigned int nblocks = (unsigned int)nrows_x;
+  dim3 grid(nblocks, 1, 1);
+  dim3 block(WARP_SIZE, 4, 1);
+  cudaStream_t s = static_cast<cudaStream_t>(stream);
+  if (b_size == 1) {
+    mmvq_gguf_q8f4m3_0_f32_plain_cuda1<<<grid, block, 0, s>>>(
+        vx, vy, (float *)dst, ncols_x, nrows_x, stride_col_y, stride_col_dst);
+  }
+}
 
 // Quantize launchers.
 
