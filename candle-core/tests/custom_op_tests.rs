@@ -122,6 +122,7 @@ impl candle_core::InplaceOp1 for Elu {
         let alpha = self.alpha;
         match s {
             CpuStorage::F8E4M3(s) => s.iter_mut().for_each(|v| *v = fwd(*v, alpha)),
+            CpuStorage::F8E5M2(s) => s.iter_mut().for_each(|v| *v = fwd(*v, alpha)),
             CpuStorage::BF16(s) => s.iter_mut().for_each(|v| *v = fwd(*v, alpha)),
             CpuStorage::F16(s) => s.iter_mut().for_each(|v| *v = fwd(*v, alpha)),
             CpuStorage::F32(s) => s.iter_mut().for_each(|v| *v = fwd(*v, alpha)),

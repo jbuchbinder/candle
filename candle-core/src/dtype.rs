@@ -27,6 +27,8 @@ pub enum DType {
     F64,
     // 8-bit floating point with 4-bit exponent and 3-bit mantissa.
     F8E4M3,
+    /// 8-bit floating point with 5-bit exponent and 2-bit mantissa.
+    F8E5M2,
     /// 6-bit float with 2 exponent bits and 3 mantissa bits (MX6 format)
     F6E2M3,
     /// 6-bit float with 3 exponent bits and 2 mantissa bits (MX6 format)
@@ -62,6 +64,7 @@ impl std::str::FromStr for DType {
             "f32" => Ok(Self::F32),
             "f64" => Ok(Self::F64),
             "f8e4m3" => Ok(Self::F8E4M3),
+            "f8e5m2" => Ok(Self::F8E5M2),
             "f6e2m3" => Ok(Self::F6E2M3),
             "f6e3m2" => Ok(Self::F6E3M2),
             "f4" => Ok(Self::F4),
@@ -85,6 +88,7 @@ impl DType {
             Self::F32 => "f32",
             Self::F64 => "f64",
             Self::F8E4M3 => "f8e4m3",
+            Self::F8E5M2 => "f8e5m2",
             Self::F6E2M3 => "f6e2m3",
             Self::F6E3M2 => "f6e3m2",
             Self::F4 => "f4",
@@ -105,6 +109,7 @@ impl DType {
             Self::F32 => 4,
             Self::F64 => 8,
             Self::F8E4M3 => 1,
+            Self::F8E5M2 => 1,
             Self::F6E2M3 => 0, // 6 bits
             Self::F6E3M2 => 0, // 6 bits
             Self::F4 => 0,     // 4 bits
@@ -120,6 +125,7 @@ impl DType {
             | Self::F32
             | Self::F64
             | Self::F8E4M3
+            | Self::F8E5M2
             | Self::F6E2M3
             | Self::F6E3M2
             | Self::F4
@@ -135,6 +141,7 @@ impl DType {
             | Self::F32
             | Self::F64
             | Self::F8E4M3
+            | Self::F8E5M2
             | Self::F6E2M3
             | Self::F6E3M2
             | Self::F4
@@ -223,6 +230,7 @@ macro_rules! with_dtype {
     };
 }
 use float8::F8E4M3 as f8e4m3;
+use float8::F8E5M2 as f8e5m2;
 use half::{bf16, f16};
 
 with_dtype!(u8, U8, |v: f64| v as u8, |v: u8| v as f64);
@@ -235,6 +243,7 @@ with_dtype!(bf16, BF16, bf16::from_f64, bf16::to_f64);
 with_dtype!(f32, F32, |v: f64| v as f32, |v: f32| v as f64);
 with_dtype!(f64, F64, |v: f64| v, |v: f64| v);
 with_dtype!(f8e4m3, F8E4M3, f8e4m3::from_f64, |v: f8e4m3| v.to_f64());
+with_dtype!(f8e5m2, F8E5M2, f8e5m2::from_f64, |v: f8e5m2| v.to_f64());
 
 pub trait IntDType: WithDType + num_traits::Bounded {
     fn is_true(&self) -> bool;
@@ -293,3 +302,4 @@ impl FloatDType for bf16 {}
 impl FloatDType for f32 {}
 impl FloatDType for f64 {}
 impl FloatDType for f8e4m3 {}
+impl FloatDType for f8e5m2 {}

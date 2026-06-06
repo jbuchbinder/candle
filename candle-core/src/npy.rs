@@ -91,6 +91,7 @@ impl Header {
             DType::U32 => "u4",
             DType::U8 => "u1",
             DType::F8E4M3 => Err(Error::Npy("f8e4m3 is not supported".into()))?,
+            DType::F8E5M2 => Err(Error::Npy("f8e5m2 is not supported".into()))?,
             DType::F6E2M3 => Err(Error::Npy("f6e2m3 is not supported".into()))?,
             DType::F6E3M2 => Err(Error::Npy("f6e3m2 is not supported".into()))?,
             DType::F4 => Err(Error::Npy("f4 is not supported".into()))?,
@@ -259,6 +260,13 @@ impl Tensor {
                 reader.read_exact(&mut data_t)?;
                 let data_f8: Vec<float8::F8E4M3> =
                     data_t.into_iter().map(float8::F8E4M3::from_bits).collect();
+                Tensor::from_vec(data_f8, shape, &Device::Cpu)
+            }
+            DType::F8E5M2 => {
+                let mut data_t = vec![0u8; elem_count];
+                reader.read_exact(&mut data_t)?;
+                let data_f8: Vec<float8::F8E5M2> =
+                    data_t.into_iter().map(float8::F8E5M2::from_bits).collect();
                 Tensor::from_vec(data_f8, shape, &Device::Cpu)
             }
             DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {

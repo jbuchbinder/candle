@@ -18,6 +18,10 @@ pub enum GgmlDType {
     Q5K,
     Q6K,
     Q8K,
+    Q8F4M3_0,
+    Q8F4M3_1,
+    Q8F5M2_0,
+    Q8F5M2_1,
     F16,
     F32,
     BF16,
@@ -66,7 +70,11 @@ pub fn call_quantized_matmul_mv_t(
         | GgmlDType::Q5_0
         | GgmlDType::Q5_1
         | GgmlDType::Q8_0
-        | GgmlDType::Q8_1 => {
+        | GgmlDType::Q8_1
+        | GgmlDType::Q8F4M3_0
+        | GgmlDType::Q8F4M3_1
+        | GgmlDType::Q8F5M2_0
+        | GgmlDType::Q8F5M2_1 => {
             let nth0 = 8;
             let nth1 = 8;
             let align = 8;
@@ -138,6 +146,12 @@ pub fn call_quantized_matmul_mv_t(
         GgmlDType::F16 => "kernel_mul_mv_f16_f32",
         GgmlDType::BF16 => "kernel_mul_mv_bf16_f32",
         GgmlDType::F32 => "kernel_mul_mv_f32_f32",
+        GgmlDType::Q8F4M3_0
+        | GgmlDType::Q8F4M3_1
+        | GgmlDType::Q8F5M2_0
+        | GgmlDType::Q8F5M2_1 => {
+            Err(MetalKernelError::UnsupportedDTypeForOp("Q8F4M3/Q8F5M2", "qmatmul"))?
+        }
     };
 
     let pipeline = kernels.load_pipeline(device, Source::Quantized, name)?;
@@ -243,6 +257,12 @@ pub fn call_quantized_matmul_mm_t(
         GgmlDType::F32 => "kernel_mul_mm_f32_f32",
         GgmlDType::Q8_1 => Err(MetalKernelError::UnsupportedDTypeForOp("Q8_1", "qmatmul"))?,
         GgmlDType::Q8K => Err(MetalKernelError::UnsupportedDTypeForOp("Q8K", "qmatmul"))?,
+        GgmlDType::Q8F4M3_0
+        | GgmlDType::Q8F4M3_1
+        | GgmlDType::Q8F5M2_0
+        | GgmlDType::Q8F5M2_1 => {
+            Err(MetalKernelError::UnsupportedDTypeForOp("Q8F4M3/Q8F5M2", "qmatmul"))?
+        }
     };
 
     let pipeline = kernels.load_pipeline(device, Source::Quantized, name)?;

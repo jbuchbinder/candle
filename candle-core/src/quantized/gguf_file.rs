@@ -628,3 +628,14 @@ pub fn write<W: std::io::Seek + std::io::Write>(
     }
     Ok(())
 }
+
+/// Returns a metadata entry advertising the FP8 type IDs used by candle.
+/// This allows GGUF readers to recognize candle-specific FP8 quantization types.
+pub fn fp8_metadata_entry() -> (&'static str, Value) {
+    (
+        "candle.fp8_types",
+        Value::String(
+            "43:q8f4m3_0,44:q8f4m3_1,45:q8f5m2_0,46:q8f5m2_1".to_string(),
+        ),
+    )
+}

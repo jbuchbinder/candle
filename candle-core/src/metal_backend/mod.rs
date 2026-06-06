@@ -110,6 +110,7 @@ impl BackendStorage for MetalStorage {
             DType::F32 => Ok(CpuStorage::F32(self.to_cpu()?)),
             DType::F64 => Ok(CpuStorage::F64(self.to_cpu()?)),
             DType::F8E4M3 => Ok(CpuStorage::F8E4M3(self.to_cpu()?)),
+            DType::F8E5M2 => Ok(CpuStorage::F8E5M2(self.to_cpu()?)),
             DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
                 Err(crate::Error::UnsupportedDTypeForOp(self.dtype, "to_cpu_storage").bt())
             }
@@ -460,6 +461,7 @@ impl BackendStorage for MetalStorage {
                     DType::U32 => contiguous::const_set::U32,
                     DType::U8 => contiguous::const_set::U8,
                     DType::F8E4M3 => crate::bail!("unsupported const-set f8e4m3"),
+                    DType::F8E5M2 => crate::bail!("unsupported const-set f8e5m2"),
                     DType::F64 => crate::bail!("unsupported const-set f64"),
                     DType::F4
                     | DType::F6E2M3
@@ -491,6 +493,7 @@ impl BackendStorage for MetalStorage {
                     DType::U32 => strided::const_set::U32,
                     DType::U8 => strided::const_set::U8,
                     DType::F8E4M3 => crate::bail!("unsupported const-set f8e4m3"),
+                    DType::F8E5M2 => crate::bail!("unsupported const-set f8e5m2"),
                     DType::F64 => crate::bail!("unsupported const-set f64"),
                     DType::F4
                     | DType::F6E2M3
@@ -2025,6 +2028,7 @@ impl BackendDevice for MetalDevice {
             CpuStorageRef::F32(storage) => (storage.len(), self.new_buffer_with_data(storage)),
             CpuStorageRef::F64(storage) => (storage.len(), self.new_buffer_with_data(storage)),
             CpuStorageRef::F8E4M3(storage) => (storage.len(), self.new_buffer_with_data(storage)),
+            CpuStorageRef::F8E5M2(storage) => (storage.len(), self.new_buffer_with_data(storage)),
             CpuStorageRef::F6E2M3(_)
             | CpuStorageRef::F6E3M2(_)
             | CpuStorageRef::F4(_)
@@ -2047,6 +2051,7 @@ impl BackendDevice for MetalDevice {
             CpuStorage::F32(storage) => (storage.len(), self.new_buffer_with_data(storage)),
             CpuStorage::F64(storage) => (storage.len(), self.new_buffer_with_data(storage)),
             CpuStorage::F8E4M3(storage) => (storage.len(), self.new_buffer_with_data(storage)),
+            CpuStorage::F8E5M2(storage) => (storage.len(), self.new_buffer_with_data(storage)),
             CpuStorage::F6E2M3(_)
             | CpuStorage::F6E3M2(_)
             | CpuStorage::F4(_)

@@ -169,6 +169,18 @@ pub fn qtensor_from_ggml(
         GgmlDType::Q8_0 => {
             from_raw_data::<k_quants::BlockQ8_0>(raw_data, size_in_bytes, dims, device)
         }
+        GgmlDType::Q8F4M3_0 => {
+            from_raw_data::<k_quants::BlockQ8F4M3_0>(raw_data, size_in_bytes, dims, device)
+        }
+        GgmlDType::Q8F4M3_1 => {
+            from_raw_data::<k_quants::BlockQ8F4M3_1>(raw_data, size_in_bytes, dims, device)
+        }
+        GgmlDType::Q8F5M2_0 => {
+            from_raw_data::<k_quants::BlockQ8F5M2_0>(raw_data, size_in_bytes, dims, device)
+        }
+        GgmlDType::Q8F5M2_1 => {
+            from_raw_data::<k_quants::BlockQ8F5M2_1>(raw_data, size_in_bytes, dims, device)
+        }
         GgmlDType::Q2K => {
             from_raw_data::<k_quants::BlockQ2K>(raw_data, size_in_bytes, dims, device)
         }

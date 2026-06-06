@@ -124,6 +124,7 @@ impl crate::CustomOp1 for ArgSort {
             crate::CpuStorage::F32(vs) => self.asort(vs, layout),
             crate::CpuStorage::F64(vs) => self.asort(vs, layout),
             crate::CpuStorage::F8E4M3(vs) => self.asort(vs, layout),
+            crate::CpuStorage::F8E5M2(vs) => self.asort(vs, layout),
             // Dummy types don't support sorting
             crate::CpuStorage::F6E2M3(_) => {
                 return Err(

@@ -1036,6 +1036,12 @@ fn ggml_reference_matmul_error(dtype: GgmlDType) -> Result<f32> {
 
         // Not from the ggml repo.
         GgmlDType::Q8K => 0.00065,
+
+        // FP8 types (not from the ggml repo, placeholder values)
+        GgmlDType::Q8F4M3_0 => 0.02,
+        GgmlDType::Q8F4M3_1 => 0.02,
+        GgmlDType::Q8F5M2_0 => 0.05,
+        GgmlDType::Q8F5M2_1 => 0.05,
     };
     Ok(err)
 }
@@ -1399,4 +1405,96 @@ fn quantized_matmul_q8k() -> Result<()> {
 
     ggml_matmul_error_test::<BlockQ8K>()?;
     Ok(())
+}
+
+// ----- FP8 block type tests (Tasks 2.5, 2.6) -----
+
+#[test]
+fn test_fp8_block_sizes() {
+    assert_eq!(std::mem::size_of::<k_quants::BlockQ8F4M3_0>(), 34);
+    assert_eq!(std::mem::size_of::<k_quants::BlockQ8F4M3_1>(), 36);
+    assert_eq!(std::mem::size_of::<k_quants::BlockQ8F5M2_0>(), 34);
+    assert_eq!(std::mem::size_of::<k_quants::BlockQ8F5M2_1>(), 36);
+}
+
+#[test]
+fn test_q8f4m3_0_roundtrip() {
+    let src: Vec<f32> = (0..64).map(|i| (i as f32 - 32.0) * 0.1).collect();
+    let nb = src.len() / k_quants::QK8F4M3_0;
+    let mut blocks = vec![k_quants::BlockQ8F4M3_0::zeros(); nb];
+    k_quants::BlockQ8F4M3_0::from_float(&src, &mut blocks);
+    let mut dst = vec![0f32; src.len()];
+    k_quants::BlockQ8F4M3_0::to_float(&blocks, &mut dst);
+    for (i, (s, d)) in src.iter().zip(dst.iter()).enumerate() {
+        let err = (s - d).abs() / (1.0 + s.abs());
+        assert!(err < 0.05, "relative error {err} too large at index {i}: {s} -> {d}");
+    }
+}
+
+#[test]
+fn test_q8f4m3_0_all_zeros() {
+    let src = vec![0f32; 64];
+    let nb = src.len() / k_quants::QK8F4M3_0;
+    let mut blocks = vec![k_quants::BlockQ8F4M3_0::zeros(); nb];
+    k_quants::BlockQ8F4M3_0::from_float(&src, &mut blocks);
+    let mut dst = vec![0f32; src.len()];
+    k_quants::BlockQ8F4M3_0::to_float(&blocks, &mut dst);
+    for &d in dst.iter() {
+        assert!(!d.is_nan(), "NaN in output for all-zero input");
+    }
+}
+
+#[test]
+fn test_q8f4m3_0_vec_dot() {
+    let src: Vec<f32> = (0..64).map(|i| (i as f32 - 32.0) * 0.1).collect();
+    let nb = src.len() / k_quants::QK8F4M3_0;
+    let mut blocks = vec![k_quants::BlockQ8F4M3_0::zeros(); nb];
+    k_quants::BlockQ8F4M3_0::from_float(&src, &mut blocks);
+    let result = k_quants::BlockQ8F4M3_0::vec_dot(blocks.len() * k_quants::QK8F4M3_0, &blocks, &src);
+    let expected: f32 = src.iter().map(|x| x * x).sum();
+    let err = (result - expected).abs() / expected.abs().max(1e-6);
+    assert!(err < 0.05, "vec_dot error {err} too large: got {result}, expected {expected}");
+}
+
+#[test]
+fn test_q8f4m3_1_roundtrip() {
+    // Use positive-biased data to test asymmetric quantization
+    let src: Vec<f32> = (0..64).map(|i| (i as f32 + 10.0) * 0.5).collect();
+    let nb = src.len() / k_quants::QK8F4M3_1;
+    let mut blocks = vec![k_quants::BlockQ8F4M3_1::zeros(); nb];
+    k_quants::BlockQ8F4M3_1::from_float(&src, &mut blocks);
+    let mut dst = vec![0f32; src.len()];
+    k_quants::BlockQ8F4M3_1::to_float(&blocks, &mut dst);
+    for (i, (s, d)) in src.iter().zip(dst.iter()).enumerate() {
+        let err = (s - d).abs() / (1.0 + s.abs());
+        assert!(err < 0.05, "relative error {err} too large at index {i}: {s} -> {d}");
+    }
+}
+
+#[test]
+fn test_q8f5m2_0_roundtrip() {
+    let src: Vec<f32> = (0..64).map(|i| (i as f32 - 32.0) * 0.1).collect();
+    let nb = src.len() / k_quants::QK8F5M2_0;
+    let mut blocks = vec![k_quants::BlockQ8F5M2_0::zeros(); nb];
+    k_quants::BlockQ8F5M2_0::from_float(&src, &mut blocks);
+    let mut dst = vec![0f32; src.len()];
+    k_quants::BlockQ8F5M2_0::to_float(&blocks, &mut dst);
+    for (i, (s, d)) in src.iter().zip(dst.iter()).enumerate() {
+        let err = (s - d).abs() / (1.0 + s.abs());
+        assert!(err < 0.10, "relative error {err} too large at index {i}: {s} -> {d}");
+    }
+}
+
+#[test]
+fn test_fp8_ggml_dtype_roundtrip() {
+    for id in [43u32, 44, 45, 46] {
+        let dtype = GgmlDType::from_u32(id).unwrap();
+        assert_eq!(dtype.to_u32(), id);
+    }
+}
+
+#[test]
+fn test_fp8_ggml_dtype_unknown() {
+    assert!(GgmlDType::from_u32(47).is_err());
+    assert!(GgmlDType::from_u32(100).is_err());
 }

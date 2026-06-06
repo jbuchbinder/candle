@@ -64,6 +64,7 @@ impl std::fmt::Debug for Tensor {
             DType::F32 => self.fmt_dt::<f32>(f),
             DType::F64 => self.fmt_dt::<f64>(f),
             DType::F8E4M3 => self.fmt_dt::<float8::F8E4M3>(f),
+            DType::F8E5M2 => self.fmt_dt::<float8::F8E5M2>(f),
             DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
                 write!(
                     f,
@@ -523,6 +524,13 @@ impl std::fmt::Display for Tensor {
             }
             DType::F8E4M3 => {
                 if let Ok(tf) = FloatFormatter::<float8::F8E4M3>::new(&to_display, &po) {
+                    let max_w = tf.max_width(&to_display);
+                    tf.fmt_tensor(self, 1, max_w, summarize, &po, f)?;
+                    writeln!(f)?;
+                }
+            }
+            DType::F8E5M2 => {
+                if let Ok(tf) = FloatFormatter::<float8::F8E5M2>::new(&to_display, &po) {
                     let max_w = tf.max_width(&to_display);
                     tf.fmt_tensor(self, 1, max_w, summarize, &po, f)?;
                     writeln!(f)?;

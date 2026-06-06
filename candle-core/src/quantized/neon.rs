@@ -1,5 +1,6 @@
 use super::k_quants::{
-    BlockQ2K, BlockQ3K, BlockQ4K, BlockQ4_0, BlockQ5K, BlockQ6K, BlockQ8K, BlockQ8_0, QK8_0, QK_K,
+    BlockQ2K, BlockQ3K, BlockQ4K, BlockQ4_0, BlockQ5K, BlockQ6K, BlockQ8F4M3_0, BlockQ8F4M3_1,
+    BlockQ8F5M2_0, BlockQ8F5M2_1, BlockQ8K, BlockQ8_0, QK8_0, QK_K,
 };
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -612,4 +613,26 @@ unsafe fn multiply_accum_with_scale(
     let p1 = vdotq_s32(q2bytes.0, q8bytes.0);
     let p2 = vdotq_s32(q2bytes.1, q8bytes.1);
     vaddvq_s32(p1) * aux[is + index] as i32 + vaddvq_s32(p2) * aux[is + 1 + index] as i32
+}
+
+// ── FP8 vec_dot stubs (scalar fallback for now) ──────────────────────────────
+
+#[inline(always)]
+pub(crate) fn vec_dot_q8f4m3_0_f32(n: usize, xs: &[BlockQ8F4M3_0], ys: &[f32]) -> f32 {
+    BlockQ8F4M3_0::vec_dot_unopt(n, xs, ys)
+}
+
+#[inline(always)]
+pub(crate) fn vec_dot_q8f4m3_1_f32(n: usize, xs: &[BlockQ8F4M3_1], ys: &[f32]) -> f32 {
+    BlockQ8F4M3_1::vec_dot_unopt(n, xs, ys)
+}
+
+#[inline(always)]
+pub(crate) fn vec_dot_q8f5m2_0_f32(n: usize, xs: &[BlockQ8F5M2_0], ys: &[f32]) -> f32 {
+    BlockQ8F5M2_0::vec_dot_unopt(n, xs, ys)
+}
+
+#[inline(always)]
+pub(crate) fn vec_dot_q8f5m2_1_f32(n: usize, xs: &[BlockQ8F5M2_1], ys: &[f32]) -> f32 {
+    BlockQ8F5M2_1::vec_dot_unopt(n, xs, ys)
 }
