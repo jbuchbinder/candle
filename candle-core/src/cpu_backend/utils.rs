@@ -18,6 +18,7 @@ pub trait Map1 {
             C::F32(vs) => Ok(C::F32(self.f(vs, layout)?)),
             C::F64(vs) => Ok(C::F64(self.f(vs, layout)?)),
             C::F8E4M3(vs) => Ok(C::F8E4M3(self.f(vs, layout)?)),
+            C::F8E5M2(vs) => Ok(C::F8E5M2(self.f(vs, layout)?)),
             // Dummy types don't support Map1 operations
             C::F6E2M3(_) => Err(Error::UnsupportedDTypeForOp(vs.dtype(), "map1").bt()),
             C::F6E3M2(_) => Err(Error::UnsupportedDTypeForOp(vs.dtype(), "map1").bt()),
@@ -42,6 +43,7 @@ pub trait Map1Any {
             C::F32(vs) => Ok(self.f(vs, layout, C::F32)?),
             C::F64(vs) => Ok(self.f(vs, layout, C::F64)?),
             C::F8E4M3(vs) => Ok(self.f(vs, layout, C::F8E4M3)?),
+            C::F8E5M2(vs) => Ok(self.f(vs, layout, C::F8E5M2)?),
             // Dummy types don't support Map1Any operations
             C::F6E2M3(_) => Err(Error::UnsupportedDTypeForOp(vs.dtype(), "map1any").bt()),
             C::F6E3M2(_) => Err(Error::UnsupportedDTypeForOp(vs.dtype(), "map1any").bt()),
@@ -67,6 +69,7 @@ pub trait Map2 {
             (C::F32(v1), C::F32(v2)) => Ok(C::F32(self.f(v1, l1, v2, l2)?)),
             (C::F64(v1), C::F64(v2)) => Ok(C::F64(self.f(v1, l1, v2, l2)?)),
             (C::F8E4M3(v1), C::F8E4M3(v2)) => Ok(C::F8E4M3(self.f(v1, l1, v2, l2)?)),
+            (C::F8E5M2(v1), C::F8E5M2(v2)) => Ok(C::F8E5M2(self.f(v1, l1, v2, l2)?)),
             _ => Err(Error::DTypeMismatchBinaryOp {
                 lhs: v1.dtype(),
                 rhs: v2.dtype(),
@@ -93,6 +96,7 @@ pub trait Map2InPlace {
             (C::F32(v1), C::F32(v2)) => self.f(v1, l1, v2, l2)?,
             (C::F64(v1), C::F64(v2)) => self.f(v1, l1, v2, l2)?,
             (C::F8E4M3(v1), C::F8E4M3(v2)) => self.f(v1, l1, v2, l2)?,
+            (C::F8E5M2(v1), C::F8E5M2(v2)) => self.f(v1, l1, v2, l2)?,
             (v1, v2) => Err(Error::DTypeMismatchBinaryOp {
                 lhs: v1.dtype(),
                 rhs: v2.dtype(),
@@ -120,6 +124,7 @@ pub trait Map2U8 {
             (C::F32(v1), C::F32(v2)) => Ok(C::U8(self.f(v1, l1, v2, l2)?)),
             (C::F64(v1), C::F64(v2)) => Ok(C::U8(self.f(v1, l1, v2, l2)?)),
             (C::F8E4M3(v1), C::F8E4M3(v2)) => Ok(C::U8(self.f(v1, l1, v2, l2)?)),
+            (C::F8E5M2(v1), C::F8E5M2(v2)) => Ok(C::U8(self.f(v1, l1, v2, l2)?)),
             _ => Err(Error::DTypeMismatchBinaryOp {
                 lhs: v1.dtype(),
                 rhs: v2.dtype(),

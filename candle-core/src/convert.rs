@@ -157,6 +157,12 @@ impl Tensor {
                     f.write_u8(v.to_bits())?
                 }
             }
+            DType::F8E5M2 => {
+                let vs = vs.to_vec1::<float8::F8E5M2>()?;
+                for v in vs {
+                    f.write_u8(v.to_bits())?
+                }
+            }
             DType::F6E2M3 | DType::F6E3M2 | DType::F4 | DType::F8E8M0 => {
                 return Err(crate::Error::UnsupportedDTypeForOp(self.dtype(), "write_bytes").bt())
             }
