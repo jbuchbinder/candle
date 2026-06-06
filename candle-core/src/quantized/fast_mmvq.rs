@@ -27,6 +27,10 @@ fn supports(dtype: GgmlDType) -> bool {
             | GgmlDType::Q5_0
             | GgmlDType::Q5_1
             | GgmlDType::Q8_0
+            | GgmlDType::Q8F4M3_0
+            | GgmlDType::Q8F4M3_1
+            | GgmlDType::Q8F5M2_0
+            | GgmlDType::Q8F5M2_1
             | GgmlDType::Q2K
             | GgmlDType::Q3K
             | GgmlDType::Q4K
@@ -104,6 +108,10 @@ fn plain_launcher_bf16(dtype: GgmlDType) -> Option<PlainLauncher> {
         GgmlDType::Q5_0 => ffi::launch_mmvq_gguf_q5_0_bf16_plain,
         GgmlDType::Q5_1 => ffi::launch_mmvq_gguf_q5_1_bf16_plain,
         GgmlDType::Q8_0 => ffi::launch_mmvq_gguf_q8_0_bf16_plain,
+        GgmlDType::Q8F4M3_0 => ffi::launch_mmvq_gguf_q8f4m3_0_bf16_plain,
+        GgmlDType::Q8F4M3_1 => ffi::launch_mmvq_gguf_q8f4m3_1_bf16_plain,
+        GgmlDType::Q8F5M2_0 => ffi::launch_mmvq_gguf_q8f5m2_0_bf16_plain,
+        GgmlDType::Q8F5M2_1 => ffi::launch_mmvq_gguf_q8f5m2_1_bf16_plain,
         GgmlDType::Q2K => ffi::launch_mmvq_gguf_q2_k_bf16_plain,
         GgmlDType::Q3K => ffi::launch_mmvq_gguf_q3_k_bf16_plain,
         GgmlDType::Q4K => ffi::launch_mmvq_gguf_q4_k_bf16_plain,
@@ -122,6 +130,10 @@ fn plain_launcher_f16(dtype: GgmlDType) -> Option<PlainLauncher> {
         GgmlDType::Q5_0 => ffi::launch_mmvq_gguf_q5_0_f16_plain,
         GgmlDType::Q5_1 => ffi::launch_mmvq_gguf_q5_1_f16_plain,
         GgmlDType::Q8_0 => ffi::launch_mmvq_gguf_q8_0_f16_plain,
+        GgmlDType::Q8F4M3_0 => ffi::launch_mmvq_gguf_q8f4m3_0_f16_plain,
+        GgmlDType::Q8F4M3_1 => ffi::launch_mmvq_gguf_q8f4m3_1_f16_plain,
+        GgmlDType::Q8F5M2_0 => ffi::launch_mmvq_gguf_q8f5m2_0_f16_plain,
+        GgmlDType::Q8F5M2_1 => ffi::launch_mmvq_gguf_q8f5m2_1_f16_plain,
         GgmlDType::Q2K => ffi::launch_mmvq_gguf_q2_k_f16_plain,
         GgmlDType::Q3K => ffi::launch_mmvq_gguf_q3_k_f16_plain,
         GgmlDType::Q4K => ffi::launch_mmvq_gguf_q4_k_f16_plain,
@@ -140,6 +152,10 @@ fn plain_launcher_f32(dtype: GgmlDType) -> Option<PlainLauncher> {
         GgmlDType::Q5_0 => ffi::launch_mmvq_gguf_q5_0_f32_plain,
         GgmlDType::Q5_1 => ffi::launch_mmvq_gguf_q5_1_f32_plain,
         GgmlDType::Q8_0 => ffi::launch_mmvq_gguf_q8_0_f32_plain,
+        GgmlDType::Q8F4M3_0 => ffi::launch_mmvq_gguf_q8f4m3_0_f32_plain,
+        GgmlDType::Q8F4M3_1 => ffi::launch_mmvq_gguf_q8f4m3_1_f32_plain,
+        GgmlDType::Q8F5M2_0 => ffi::launch_mmvq_gguf_q8f5m2_0_f32_plain,
+        GgmlDType::Q8F5M2_1 => ffi::launch_mmvq_gguf_q8f5m2_1_f32_plain,
         GgmlDType::Q2K => ffi::launch_mmvq_gguf_q2_k_f32_plain,
         GgmlDType::Q3K => ffi::launch_mmvq_gguf_q3_k_f32_plain,
         GgmlDType::Q4K => ffi::launch_mmvq_gguf_q4_k_f32_plain,

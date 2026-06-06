@@ -28,6 +28,10 @@ fn supports(dtype: GgmlDType) -> bool {
             | GgmlDType::Q5_0
             | GgmlDType::Q5_1
             | GgmlDType::Q8_0
+            | GgmlDType::Q8F4M3_0
+            | GgmlDType::Q8F4M3_1
+            | GgmlDType::Q8F5M2_0
+            | GgmlDType::Q8F5M2_1
             | GgmlDType::Q2K
             | GgmlDType::Q3K
             | GgmlDType::Q4K
@@ -39,12 +43,32 @@ fn supports(dtype: GgmlDType) -> bool {
 /// qk (block quantization size) per dtype.
 fn qk_for(dtype: GgmlDType) -> usize {
     match dtype {
-        GgmlDType::Q4_0 | GgmlDType::Q4_1 | GgmlDType::Q5_0 | GgmlDType::Q5_1 | GgmlDType::Q8_0 => {
-            32
-        }
+        GgmlDType::Q4_0
+        | GgmlDType::Q4_1
+        | GgmlDType::Q5_0
+        | GgmlDType::Q5_1
+        | GgmlDType::Q8_0
+        | GgmlDType::Q8F4M3_0
+        | GgmlDType::Q8F4M3_1
+        | GgmlDType::Q8F5M2_0
+        | GgmlDType::Q8F5M2_1 => 32,
         GgmlDType::Q2K | GgmlDType::Q3K | GgmlDType::Q4K | GgmlDType::Q5K | GgmlDType::Q6K => 256,
         _ => unreachable!(),
     }
+}
+
+/// Block size in bytes per quantized type.
+fn block_size_for(dtype: GgmlDType) -> usize {
+    match dtype {
+        GgmlDType::Q8F4M3_0 | GgmlDType::Q8F5M2_0 => 34,
+        GgmlDType::Q8F4M3_1 | GgmlDType::Q8F5M2_1 => 36,
+        _ => unreachable!(),
+    }
+}
+
+/// Number of elements per block (identical to qk for these types).
+fn type_size_for(dtype: GgmlDType) -> usize {
+    block_size_for(dtype)
 }
 
 // ds_layout mapping: which Q8_1_mmq scale layout to use per weight type.
@@ -60,6 +84,8 @@ fn ds_layout_for(dtype: GgmlDType) -> DsLayout {
         GgmlDType::Q5_0 => DsLayout::D4,
         GgmlDType::Q5_1 => DsLayout::DS4,
         GgmlDType::Q8_0 => DsLayout::D4,
+        GgmlDType::Q8F4M3_0 | GgmlDType::Q8F5M2_0 => DsLayout::D4,
+        GgmlDType::Q8F4M3_1 | GgmlDType::Q8F5M2_1 => DsLayout::DS4,
         GgmlDType::Q2K => DsLayout::D2S6,
         GgmlDType::Q3K => DsLayout::D4,
         GgmlDType::Q4K | GgmlDType::Q5K => DsLayout::DS4,
@@ -364,7 +390,10 @@ pub fn try_fwd(
             stream_ptr,
         );
 
-        let launcher = mmq_launcher(w_dtype).expect("supports() checked");
+        let launcher = match mmq_launcher(w_dtype) {
+            Some(l) => l,
+            None => return Ok(None),
+        };
         launcher(
             fixup_ptr,
             weight_ptr,
