@@ -51,6 +51,14 @@ enum Quantization {
     Q5k,
     Q6k,
     Q8k,
+    #[value(name = "q8f4m3_0")]
+    Q8F4M3_0,
+    #[value(name = "q8f4m3_1")]
+    Q8F4M3_1,
+    #[value(name = "q8f5m2_0")]
+    Q8F5M2_0,
+    #[value(name = "q8f5m2_1")]
+    Q8F5M2_1,
     F16,
     F32,
 }
@@ -70,6 +78,10 @@ impl Quantization {
             Quantization::Q5k => GgmlDType::Q5K,
             Quantization::Q6k => GgmlDType::Q6K,
             Quantization::Q8k => GgmlDType::Q8K,
+            Quantization::Q8F4M3_0 => GgmlDType::Q8F4M3_0,
+            Quantization::Q8F4M3_1 => GgmlDType::Q8F4M3_1,
+            Quantization::Q8F5M2_0 => GgmlDType::Q8F5M2_0,
+            Quantization::Q8F5M2_1 => GgmlDType::Q8F5M2_1,
             Quantization::F16 => GgmlDType::F16,
             Quantization::F32 => GgmlDType::F32,
         }
